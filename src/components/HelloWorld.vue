@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- <h1 class="text-3xl mt-12 font-black text-primary">Hello World</h1> -->
     <div class="mb-12">
       <div class="mb-6">
         <input
@@ -12,6 +11,7 @@
         <button
           class="btn btn-primary ml-3 text-lg font-black"
           @click="addTask"
+          :disabled="title.trim() === ''"
         >
           +
         </button>
@@ -30,7 +30,8 @@
             :key="task.id"
             class="p-4 bg-neutral rounded mt-4"
           >
-            {{ task.title }}
+            <p>{{ task.title }}</p>
+            <span class="text-xs opacity-30">{{ task.createdDate }}</span>
           </div>
         </div>
         <div class="card">
@@ -71,54 +72,47 @@
 </template>
 
 <script>
+import { v4 as uuidv4 } from "uuid";
+import Dexie from "dexie";
+
 export default {
   name: "HelloWorld",
   props: {
     msg: String,
   },
+  created() {
+    this.initDatabase();
+    this.loadTasks();
+  },
   data() {
     return {
-      tasks: [
-        {
-          id: 1,
-          title: "Task 1",
-          completed: false,
-        },
-        {
-          id: 2,
-          title: "Task 2",
-          completed: true,
-        },
-        {
-          id: 3,
-          title: "Task 3",
-          completed: false,
-        },
-        {
-          id: 4,
-          title: "Task 4",
-          completed: true,
-        },
-        {
-          id: 5,
-          title: "Task 5",
-          completed: null,
-        },
-      ],
+      db: null,
+      tasks: [],
       title: "",
     };
   },
   methods: {
-    addTask() {
-      const newId = new Date().toISOString();
-
+    async initDatabase() {
+      this.db = new Dexie("todoDB");
+      this.db.version(1).stores({
+        tasks: "id,title,completed,createdDate",
+      });
+    },
+    async loadTasks() {
+      this.tasks = await this.db.tasks.toArray();
+    },
+    async addTask() {
+      if (this.title.trim() === "") return;
+      const newId = uuidv4();
       const newTask = {
         id: newId,
         title: this.title,
         completed: false,
+        createdDate: new Date().toISOString().split("T")[0], // Format the date as "YYYY-MM-DD"
       };
-
+      await this.db.tasks.add(newTask);
       this.tasks.push(newTask);
+      this.title = "";
     },
   },
   computed: {
