@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div >
     <input
       type="text"
       placeholder="Enter your task (e.g. basuh baju)"
