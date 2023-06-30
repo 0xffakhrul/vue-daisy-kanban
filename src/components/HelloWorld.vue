@@ -4,7 +4,7 @@
       <div class="mb-6 flex">
         <input
           type="text"
-          placeholder="Enter your task (e.g. makan, tido)"
+          placeholder="Click to add task"
           class="input input-bordered input-secondary w-full max-w-xs"
           onclick="task_modal.showModal()"
         />
@@ -45,13 +45,6 @@
             </div>
           </form>
         </dialog>
-        <button
-          class="btn btn-primary ml-3 text-lg font-black"
-          @click="addTask"
-          :disabled="title.trim() === ''"
-        >
-          +
-        </button>
       </div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div class="card">
@@ -60,7 +53,7 @@
               class="rounded-full h-4 w-4"
               style="background-color: rgb(73, 196, 229)"
             ></div>
-            <h2 class="font-bold text-xs uppercase">Todo</h2>
+            <h2 class="font-bold text-xs uppercase">Todo ({{todoCount}})</h2>
           </div>
           <div
             v-for="task in taskTodo"
@@ -121,12 +114,12 @@
               class="rounded-full h-4 w-4"
               style="background-color: rgb(132, 113, 242)"
             ></div>
-            <h2 class="font-bold text-xs uppercase">In Progress</h2>
+            <h2 class="font-bold text-xs uppercase">In Progress ({{doingCount}})</h2>
           </div>
           <div
             v-for="task in taskDoing"
             :key="task.id"
-            class="p-4 bg-neutral rounded mt-4"
+            class="p-4 bg-neutral rounded mt-4 flex justify-between items-center"
           >
             <div class="flex flex-col gap-1">
               <p class="capitalize">{{ task.title }}</p>
@@ -141,6 +134,22 @@
               <span class="text-xs opacity-30">{{ task.createdDate }}</span>
             </div>
             <div class="flex gap-3">
+              <button @click="updateTaskDone(task.id)">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-6 h-6 text-green-500"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4.5 12.75l6 6 9-13.5"
+                  />
+                </svg>
+              </button>
               <button @click="deleteTask(task.id)">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +175,7 @@
               class="rounded-full h-4 w-4"
               style="background-color: rgb(103, 226, 174)"
             ></div>
-            <h2 class="font-bold text-xs uppercase">Done</h2>
+            <h2 class="font-bold text-xs uppercase">Done ({{completedCount}})</h2>
           </div>
           <div
             v-for="task in taskDone"
@@ -244,7 +253,7 @@ export default {
     async initDatabase() {
       this.db = new Dexie("todoDB");
       this.db.version(1).stores({
-        tasks: "id,title,completed,severity,createdDate",
+        tasks: "id,title,completed,status,severity,createdDate",
       });
     },
     async loadTasks() {
@@ -256,7 +265,8 @@ export default {
       const newTask = {
         id: newId,
         title: this.title,
-        completed: true,
+        completed: false,
+        status: 'todo',
         severity: this.severity,
         createdDate: new Date().toISOString().split("T")[0], // Format the date as "YYYY-MM-DD"
       };
@@ -272,21 +282,30 @@ export default {
     },
     async updateTaskDone(taskId) {
       const task = await this.db.tasks.get(taskId);
-      task.completed = true; // Update the completed property of the task
+      task.status = 'completed'; // Update the completed property of the task
       await this.db.tasks.put(task, taskId); // Pass the updated task and the key to put
       await this.loadTasks()
     },
   },
   computed: {
     taskTodo() {
-      return this.tasks.filter((task) => !task.completed);
+      return this.tasks.filter((task) => task.status === 'todo');
     },
     taskDoing() {
-      return this.tasks.filter((task) => task.completed === null);
+      return this.tasks.filter((task) => task.status === 'doing');
     },
     taskDone() {
-      return this.tasks.filter((task) => task.completed);
+      return this.tasks.filter((task) => task.status === 'completed');
     },
+    todoCount() {
+      return this.tasks.filter((task) => task.status === 'todo').length
+    },
+    doingCount() {
+      return this.tasks.filter((task) => task.status === 'doing').length
+    },
+    completedCount() {
+      return this.tasks.filter((task) => task.status === 'completed').length
+    }
   },
 };
 </script>
